@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html><head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <script src="{{ url_for('static', filename='js/d3.js') }}"></script>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta charset="utf-8">
+<style>
+
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1px;
+}
+
+#licensing {
+  fill: green;
+}
+
+.link.licensing {
+  stroke: green;
+}
+
+.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  fill:	#00FFFF;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+circle:active {
+    fill:	#00FF00;
+    stroke-width: 2px;
+
+}
+
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+body {
+  padding-top: 50px;
+}
+
+
+/*
+ * Global add-ons
+ */
+
+.sub-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+/*
+ * Top navigation
+ * Hide default border to remove 1px line.
+ */
+.navbar-fixed-top {
+  border: 0;
+}
+
+/*
+ * Sidebar
+ */
+
+/* Hide for mobile, show later */
+.sidebar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 51px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+    background-color: #f5f5f5;
+    border-right: 1px solid #eee;
+  }
+}
+
+/* Sidebar navigation */
+.nav-sidebar {
+  margin-right: -21px; /* 20px padding + 1px border */
+  margin-bottom: 20px;
+  margin-left: -20px;
+}
+.nav-sidebar > li > a {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+.nav-sidebar > .active > a,
+.nav-sidebar > .active > a:hover,
+.nav-sidebar > .active > a:focus {
+  color: #fff;
+  background-color: #428bca;
+}
+
+
+/*
+ * Main content
+ */
+
+.main {
+  padding: 20px;
+}
+@media (min-width: 768px) {
+  .main {
+    padding-right: 40px;
+    padding-left: 40px;
+  }
+}
+.main .page-header {
+  margin-top: 0;
+}
+
+
+/*
+ * Placeholder dashboard ideas
+ */
+
+.placeholders {
+  margin-bottom: 30px;
+  text-align: center;
+}
+.placeholders h4 {
+  margin-bottom: 0;
+}
+.placeholder {
+  margin-bottom: 20px;
+}
+.placeholder img {
+  display: inline-block;
+  border-radius: 50%;
+}
+</style>
+  </head>
+  <body data-gr-c-s-loaded="true">
+
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">CodeVision</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-3 col-md-2 sidebar">
+        <ul class="nav nav-sidebar">
+          <li ><a href='viewdata'>Results Overview </a></li>
+          <li class="active" ><a href="#">Weighted Graph Clustring</a>  <span class="sr-only">(current)</span> </li>
+          <li><a href="uploads/graph_out.csv">Export CSV File</a></li>
+        </ul>
+      </div>
+      <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+        <h2 class="sub-header">Graph</h2>
+        <input type="range" name="rangeInput" min="{{min*100}}" max="{{max*100}}" onchange="updateTextInput(this.value);">
+        <input type="text"  id="textInput" value="">
+        <button class ="btn btn-md btn-success" onclick="myFunction()">Update</button>
+        <svg width="100" height="100">
+
+        <script type="text/javascript">
+          function updateTextInput(val) {
+                    document.getElementById('textInput').value=val;
+                  }
+
+          function myFunction() {
+
+
+          d3.csv("uploads/graph_out.csv", function(err, data) {
+
+              if (err) console.log(err) // error messages
+
+              threshold = document.getElementById("textInput").value
+              links = []
+              threshold = (threshold/100)
+              for (var i = 0; i < data.length; i++) {
+                //console.log(data[i].weight)
+                if(threshold<=data[i].weight){
+                  links.push(data[i])
+                }
+              }
+              console.log(links);
+
+              var nodes = {};
+
+              // Compute the distinct nodes from the links.
+              links.forEach(function(link) {
+                link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+                link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+              });
+
+              var width = 1200,
+                  height = 800;
+
+              var force = d3.layout.force()
+                  .nodes(d3.values(nodes))
+                  .links(links)
+                  .size([width, height])
+                  .linkDistance(60)
+                  .charge(-300)
+                  .on("tick", tick)
+                  .start();
+
+             var old_svg = d3.select('svg');
+             old_svg.remove();
+
+              var svg = d3.select("body").append("svg")
+                  .attr("width", width)
+                  .attr("height", height);
+
+              // Per-type markers, as they don't inherit styles.
+              svg.append("defs").selectAll("marker")
+                  .data(["suit", "licensing", "resolved"])
+                .enter().append("marker")
+                  .attr("id", function(d) { return d; })
+                  .attr("viewBox", "0 -5 10 10")
+                  .attr("refX", 15)
+                  .attr("refY", -1.5)
+                  .attr("markerWidth", 6)
+                  .attr("markerHeight", 6)
+                  .attr("orient", "auto")
+                .append("path")
+                  .attr("d", "M0,-5L10,0L0,5");
+
+              var path = svg.append("g").selectAll("path")
+                  .data(force.links())
+                .enter().append("path")
+                  .attr("class", function(d) { return "link " + d.type; })
+                  .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+
+              var circle = svg.append("g").selectAll("circle")
+                  .data(force.nodes())
+                .enter().append("circle")
+                  .attr("r", 6)
+                  .call(force.drag);
+
+              var text = svg.append("g").selectAll("text")
+                  .data(force.nodes())
+                .enter().append("text")
+                  .attr("x", 8)
+                  .attr("y", ".31em")
+                  .text(function(d) { return d.name; });
+
+              // Use elliptical arc path segments to doubly-encode directionality.
+              function tick() {
+                path.attr("d", linkArc);
+                circle.attr("transform", transform);
+                text.attr("transform", transform);
+              }
+
+              function linkArc(d) {
+                var dx = d.target.x - d.source.x,
+                    dy = d.target.y - d.source.y,
+                    dr = Math.sqrt(dx * dx + dy * dy);
+                return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+              }
+
+              function transform(d) {
+                return "translate(" + d.x + "," + d.y + ")";
+              }
+
+          });
+          }
+
+          </script>
+
+      </div>
+    </div>
+  </div>
+
+
+</body>
+</html>

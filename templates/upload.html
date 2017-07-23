@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+          <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+          <script src="{{ url_for('static', filename='js/d3.js') }}"></script>
+
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta charset="utf-8">
+        <style>
+
+        .link {
+          fill: none;
+          stroke: #666;
+          stroke-width: 1px;
+        }
+
+        #licensing {
+          fill: green;
+        }
+
+        .link.licensing {
+          stroke: green;
+        }
+
+        .link.resolved {
+          stroke-dasharray: 0,2 1;
+        }
+
+        circle {
+          fill:	#00FFFF;
+          stroke: #333;
+          stroke-width: 1.5px;
+        }
+
+        circle:active {
+            fill:	#00FF00;
+            stroke-width: 2px;
+
+        }
+
+
+        text {
+          font: 10px sans-serif;
+          pointer-events: none;
+          text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+        }
+  </style>
+  </head>
+  <body>
+    <div class="container">
+          <div class="header">
+            <h2 class="text-muted">Code analysis</h2>
+          </div>
+          <hr/>
+          <div>
+            <p>Average similarity: {{avg}}</p>
+            <p>Maximum similarity: {{max}}</p>
+            <p>Minimum similarity : {{min}}</p>
+          </div>
+          <div class="header">
+            <h3 class="text-muted">Download code files</h3>
+          </div>
+          <hr/>
+          <div>
+          This is a list of the code files you just uploaded, click on them to load/download them
+          <ul>
+            {% for file in filenames %}
+              <li><a href="{{url_for('uploaded_file', filename=file)}}">{{file}}</a></li>
+            {% endfor %}
+          </ul>
+          <div class="header">
+            <h3 class="text-muted">Download csv file</h3>
+          </div>
+          <hr/>
+          Files similarity list in csv format
+          <a href="uploads/graph_out.csv">csvfile</a>
+          <div class="header">
+            <h3 class="text-muted">Clustring</h3>
+          </div>
+          <hr/>
+          <input type="range" name="rangeInput" min="{{min*100}}" max="{{max*100}}" onchange="updateTextInput(this.value);">
+          <input type="text"  id="textInput" value="">
+          <button class ="btn btn-md btn-success" onclick="myFunction()">Update</button>
+
+          <svg width="100" height="100">
+          </svg>
+          </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+    function updateTextInput(val) {
+              document.getElementById('textInput').value=val;
+            }
+
+    function myFunction() {
+
+
+    d3.csv("uploads/graph_out.csv", function(err, data) {
+
+        if (err) console.log(err) // error messages
+
+        threshold = document.getElementById("textInput").value
+        links = []
+        threshold = (threshold/100)
+        for (var i = 0; i < data.length; i++) {
+          //console.log(data[i].weight)
+          if(threshold<=data[i].weight){
+            links.push(data[i])
+          }
+        }
+        console.log(links);
+
+        var nodes = {};
+
+        // Compute the distinct nodes from the links.
+        links.forEach(function(link) {
+          link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+          link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+        });
+
+        var width = 1200,
+            height = 1000;
+
+        var force = d3.layout.force()
+            .nodes(d3.values(nodes))
+            .links(links)
+            .size([width, height])
+            .linkDistance(60)
+            .charge(-300)
+            .on("tick", tick)
+            .start();
+
+       var old_svg = d3.select('svg');
+       old_svg.remove();
+
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Per-type markers, as they don't inherit styles.
+        svg.append("defs").selectAll("marker")
+            .data(["suit", "licensing", "resolved"])
+          .enter().append("marker")
+            .attr("id", function(d) { return d; })
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 15)
+            .attr("refY", -1.5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+          .append("path")
+            .attr("d", "M0,-5L10,0L0,5");
+
+        var path = svg.append("g").selectAll("path")
+            .data(force.links())
+          .enter().append("path")
+            .attr("class", function(d) { return "link " + d.type; })
+            .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+
+        var circle = svg.append("g").selectAll("circle")
+            .data(force.nodes())
+          .enter().append("circle")
+            .attr("r", 6)
+            .call(force.drag);
+
+        var text = svg.append("g").selectAll("text")
+            .data(force.nodes())
+          .enter().append("text")
+            .attr("x", 8)
+            .attr("y", ".31em")
+            .text(function(d) { return d.name; });
+
+        // Use elliptical arc path segments to doubly-encode directionality.
+        function tick() {
+          path.attr("d", linkArc);
+          circle.attr("transform", transform);
+          text.attr("transform", transform);
+        }
+
+        function linkArc(d) {
+          var dx = d.target.x - d.source.x,
+              dy = d.target.y - d.source.y,
+              dr = Math.sqrt(dx * dx + dy * dy);
+          return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+        }
+
+        function transform(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        }
+
+    });
+    }
+
+    </script>
+  </body>
+</html>

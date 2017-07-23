@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  </head>
+  <style>
+      /* layout.css Style */
+    .upload-drop-zone {
+      height: 200px;
+      border-width: 2px;
+      margin-bottom: 20px;
+    }
+
+    /* skin.css Style*/
+    .upload-drop-zone {
+      color: #ccc;
+      border-style: dashed;
+      border-color: #ccc;
+      line-height: 200px;
+      text-align: center
+    }
+    .upload-drop-zone.drop {
+      color: #222;
+      border-color: #222;
+    }
+  </style>
+  <script  type="text/javascript">
+      function($) {
+       'use strict';
+
+       // UPLOAD CLASS DEFINITION
+       // ======================
+
+       var dropZone = document.getElementById('drop-zone');
+       var uploadForm = document.getElementById('js-upload-form');
+
+       var startUpload = function(files) {
+           console.log(files)
+       }
+
+       uploadForm.addEventListener('submit', function(e) {
+           var uploadFiles = document.getElementById('js-upload-files').files;
+           e.preventDefault()
+
+           startUpload(uploadFiles)
+       })
+
+       dropZone.ondrop = function(e) {
+           e.preventDefault();
+           this.className = 'upload-drop-zone';
+
+           startUpload(e.dataTransfer.files)
+       }
+
+       dropZone.ondragover = function() {
+           this.className = 'upload-drop-zone drop';
+           return false;
+       }
+
+       dropZone.ondragleave = function() {
+           this.className = 'upload-drop-zone';
+           return false;
+       }
+
+    }(jQuery);
+  </script>
+  <body>
+
+    <div class="container">
+      <div class="header">
+        <h3 class="text-muted">CodeVision Demo</h3>
+      </div>
+      <hr/>
+      <div>
+    <!--
+      <form action="upload" method="post" enctype="multipart/form-data">
+        <input type="file" multiple="" name="file[]" class="span3" /><br />
+        <input type="submit" value="Upload"  class="span2">
+      </form>
+      </div>
+    </div>
+-->
+    <div class="container">
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Upload Files</strong> </div>
+        <div class="panel-body">
+
+          <!-- Standar Form -->
+          <h4>Select files from your computer</h4>
+          <form action="upload" method="post" enctype="multipart/form-data" id="js-upload-form">
+            <div class="form-inline">
+              <div class="form-group">
+                <input type="file" multiple="" name="file[]" id="js-upload-files" multiple>
+              </div>
+              <button type="submit" value="Upload" class="btn btn-sm btn-primary" id="js-upload-submit">Upload files</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div> <!-- /container -->
+  </body>
+</html>
